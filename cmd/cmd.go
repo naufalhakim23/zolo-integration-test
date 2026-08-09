@@ -11,6 +11,7 @@ import (
 	"zolo-test-integration/internal/app/service"
 	"zolo-test-integration/internal/app/tenant"
 	"zolo-test-integration/internal/pkg"
+	"zolo-test-integration/migrations"
 	"zolo-test-integration/pkg/driver"
 )
 
@@ -31,6 +32,11 @@ func Execute() {
 		os.Exit(1)
 	}
 	defer db.Close()
+
+	if err := migrations.Run(db); err != nil {
+		logger.Error("failed to run migrations", "error", err)
+		os.Exit(1)
+	}
 
 	options := pkg.OptionsApplication{
 		Config:    cfg,
