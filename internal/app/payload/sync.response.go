@@ -1,7 +1,10 @@
 package payload
 
 import (
+	"errors"
 	"time"
+	"zolo-test-integration/internal/app/repository/model"
+	"zolo-test-integration/internal/pkg"
 )
 
 // SyncResult is the audit output returned to the dashboard.
@@ -17,6 +20,8 @@ type SyncResult struct {
 	AttemptCount int               `json:"attempt_count,omitempty"`
 	SyncedAt     time.Time         `json:"synced_at,omitzero"`
 
+	// Replayed marks a response served from a previous attempt rather than a
+	// fresh ERP call, idempting the request.
 	Replayed bool `json:"replayed,omitempty"`
 }
 
@@ -24,4 +29,39 @@ type SyncLine struct {
 	SKU      string `json:"sku"`
 	Accepted bool   `json:"accepted"`
 	Reason   string `json:"reason,omitempty"`
+}
+
+func LinesFromModel(lines []model.SyncLineResult) []SyncLine {
+	if len(lines) == 0 {
+		return nil
+	}
+
+	out := make([]SyncLine, 0, len(lines))
+	for _, line := range lines {
+		item := SyncLine{SKU: line.SKU, Accepted: line.Accepted}
+		if line.Reason != nil {
+			item.Reason = *line.Reason
+		}
+		out = append(out, item)
+	}
+
+	return out
+}
+
+// SyncResultFromError turns a per-order failure into a result row, so a batch
+// response has one entry per requested.
+func SyncResultFromError(orderID string, err error) SyncResult {
+	result := SyncResult{
+		OrderID:   orderID,
+		Status:    pkg.StatusFailed,
+		ErrorCode: pkg.CodeInternalError,
+	}
+
+	if appErr, ok := errors.AsType[*pkg.AppError](err); ok {
+		result.ErrorCode = appErr.Code
+		result.MessageCode = appErr.MessageCode
+		result.Params = appErr.Params
+	}
+
+	return result
 }

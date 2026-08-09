@@ -40,6 +40,10 @@ func (e *AppError) WithParam(key, value string) *AppError {
 	return e
 }
 
+func NewValidationError(messageCode string, err error) *AppError {
+	return NewError(CodeValidationError, messageCode, http.StatusUnprocessableEntity, err)
+}
+
 func NewNotFoundError(messageCode string, err error) *AppError {
 	return NewError(CodeNotFound, messageCode, http.StatusNotFound, err)
 }
