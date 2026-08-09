@@ -408,6 +408,23 @@ func TestBetaPayloadWireFormat(t *testing.T) {
 			}
 		})
 	}
+
+	// ERP B enforces its own 24-hour window, so dropping this field would leave the
+	// server-side ORDER_EXPIRED rejection unreachable.
+	t.Run("confirmed at", func(t *testing.T) {
+		got, ok := decoded["confirmed_at"]
+		if !ok {
+			t.Fatalf("confirmed_at missing from payload %s", raw)
+		}
+
+		var sent time.Time
+		if err := json.Unmarshal(got, &sent); err != nil {
+			t.Fatalf("confirmed_at is not a timestamp: %v", err)
+		}
+		if !sent.Equal(betaNow) {
+			t.Errorf("confirmed_at = %s, want %s", sent, betaNow)
+		}
+	})
 }
 
 func TestDefaultRegistry(t *testing.T) {

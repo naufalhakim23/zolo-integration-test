@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"zolo-test-integration/internal/mockerp"
 )
@@ -54,6 +55,15 @@ func betaBody(partnerID int, skus ...string) string {
 	}
 	return `{"order_ref":"ord_1","partner_id":` + strconv.Itoa(partnerID) +
 		`,"order_lines":[` + strings.Join(lines, ",") + `]}`
+}
+
+func betaBodyConfirmedAt(confirmedAt time.Time, skus ...string) string {
+	return strings.Replace(
+		betaBody(882, skus...),
+		`"order_ref":"ord_1"`,
+		`"order_ref":"ord_1","confirmed_at":"`+confirmedAt.UTC().Format(time.RFC3339)+`"`,
+		1,
+	)
 }
 
 // ERP A's rate limit above two line items is the behaviour that forces the client to chunk.
@@ -248,6 +258,19 @@ func TestBetaValidation(t *testing.T) {
 			body:       `{"order_ref":`,
 			wantStatus: http.StatusBadRequest,
 			wantError:  "MALFORMED_PAYLOAD",
+		},
+		{
+			// The integration catches expiry in pre-validation, but ERP B enforces the
+			// same window, so an order that crosses it in flight is rejected here.
+			name:       "confirmed more than 24 hours ago",
+			body:       betaBodyConfirmedAt(time.Now().Add(-25*time.Hour), "SKU-1"),
+			wantStatus: http.StatusBadRequest,
+			wantError:  "ORDER_EXPIRED",
+		},
+		{
+			name:       "confirmed inside the window",
+			body:       betaBodyConfirmedAt(time.Now().Add(-23*time.Hour), "SKU-1"),
+			wantStatus: http.StatusOK,
 		},
 	}
 
