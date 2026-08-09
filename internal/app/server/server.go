@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v5/middleware"
 
 	"zolo-test-integration/config"
+	"zolo-test-integration/internal/pkg"
 )
 
 type IServer interface {
@@ -18,10 +19,10 @@ type Server struct {
 	logger *slog.Logger
 }
 
-func NewServer(config *config.Config, logger *slog.Logger) IServer {
+func NewServer(options *pkg.OptionsApplication) IServer {
 	return &Server{
-		logger: logger,
-		config: config,
+		logger: options.Logger,
+		config: options.Config,
 	}
 }
 

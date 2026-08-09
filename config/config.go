@@ -11,12 +11,18 @@ import (
 type (
 	Config struct {
 		Application Application
+		Database    Database
 	}
 
 	Application struct {
-		Name string
-		Env  string
-		Port string
+		Name            string
+		Env             string
+		Port            string
+		DefaultLanguage string
+	}
+
+	Database struct {
+		Path string
 	}
 )
 
@@ -27,16 +33,20 @@ func LoadConfiguration(fileName string) (*Config, error) {
 	}
 
 	app := Application{
-		Name: GetEnv("APP_NAME", "zolo-test-integration"),
-		Env:  GetEnv("APP_ENV", "development"),
-		Port: GetEnv("APP_PORT", "8080"),
+		Name:            GetEnv("APP_NAME", "zolo-test-integration"),
+		Env:             GetEnv("APP_ENV", "development"),
+		Port:            GetEnv("APP_PORT", "8080"),
+		DefaultLanguage: GetEnv("APP_DEFAULT_LANGUAGE", "en"),
 	}
 
-	config := &Config{
+	database := Database{
+		Path: GetEnv("DB_PATH", "zolo.db"),
+	}
+
+	return &Config{
 		Application: app,
-	}
-
-	return config, nil
+		Database:    database,
+	}, nil
 }
 
 func GetEnv(key string, defaultVal string) string {
@@ -48,8 +58,7 @@ func GetEnv(key string, defaultVal string) string {
 }
 
 func getEnvAsInt(name string, defaultVal int) int {
-	valStr := GetEnv(name, "")
-	if value, err := strconv.Atoi(valStr); err == nil {
+	if value, err := strconv.Atoi(GetEnv(name, "")); err == nil {
 		return value
 	}
 
