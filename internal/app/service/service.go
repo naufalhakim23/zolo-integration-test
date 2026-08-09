@@ -15,5 +15,6 @@ type ServiceOption struct {
 }
 
 type Service struct {
-	Sync ISyncService
+	Sync  ISyncService
+	Order IOrderService
 }

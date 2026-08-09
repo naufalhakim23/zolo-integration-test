@@ -66,6 +66,7 @@ func repositoryConnector(opt repository.RepositoryOption) *repository.Repository
 
 func serviceConnector(opt service.ServiceOption) *service.Service {
 	return &service.Service{
-		Sync: service.InitiateSyncService(opt),
+		Sync:  service.InitiateSyncService(opt),
+		Order: service.InitiateOrderService(opt),
 	}
 }

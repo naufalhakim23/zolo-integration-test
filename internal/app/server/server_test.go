@@ -71,13 +71,16 @@ func newAPI(t *testing.T) (http.Handler, *mockerp.Server) {
 		Sync:  repository.InitiateSyncRepository(repoOpt),
 	}
 
+	svcOpt := service.ServiceOption{
+		OptionsApplication: options,
+		Repository:         repo,
+		Registry:           tenant.DefaultRegistry(erpCfg),
+		ERPClient:          erp.NewClient(erpCfg, logger),
+	}
+
 	svc := &service.Service{
-		Sync: service.InitiateSyncService(service.ServiceOption{
-			OptionsApplication: options,
-			Repository:         repo,
-			Registry:           tenant.DefaultRegistry(erpCfg),
-			ERPClient:          erp.NewClient(erpCfg, logger),
-		}),
+		Sync:  service.InitiateSyncService(svcOpt),
+		Order: service.InitiateOrderService(svcOpt),
 	}
 
 	return server.NewServer(options, svc).Handler(), mock
