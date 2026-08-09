@@ -15,6 +15,13 @@ type HandlerOptions struct {
 	*service.Service
 }
 
+// language reads the caller's preferred language for the message catalog.
+func language(c *echo.Context) string {
+	return c.Request().Header.Get("Accept-Language")
+}
+
+// respondError renders an error with its translated message. An unrecognised error
+// collapses to a generic internal message.
 func (h *HandlerOptions) respondError(c *echo.Context, err error) error {
 	var appErr *pkg.AppError
 	if !errors.As(err, &appErr) {
@@ -24,9 +31,10 @@ func (h *HandlerOptions) respondError(c *echo.Context, err error) error {
 
 	return c.JSON(appErr.StatusCode, payload.BaseResponse{
 		Status:  appErr.StatusCode,
-		Message: appErr.MessageCode,
+		Message: h.Localizer.Translate(language(c), appErr.MessageCode, appErr.Params),
 		Error: payload.ErrorDetail{
-			Code: appErr.Code,
+			Code:    appErr.Code,
+			Details: appErr.Details,
 		},
 	})
 }
