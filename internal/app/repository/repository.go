@@ -11,11 +11,13 @@ import (
 )
 
 // Database tables.
+type Table string
+
 const (
-	TableOrders          = "orders"
-	TableOrderItems      = "order_items"
-	TableSyncAttempts    = "sync_attempts"
-	TableSyncLineResults = "sync_line_results"
+	TableOrders          Table = "orders"
+	TableOrderItems      Table = "order_items"
+	TableSyncAttempts    Table = "sync_attempts"
+	TableSyncLineResults Table = "sync_line_results"
 )
 
 type RepositoryOption struct {

@@ -3,10 +3,11 @@ package pkg
 import "net/http"
 
 type AppError struct {
-	Code        string `json:"code"`
-	MessageCode string `json:"-"`
-	StatusCode  int    `json:"-"`
-	Err         error  `json:"-"`
+	Code        string            `json:"code"`
+	MessageCode string            `json:"-"`
+	Params      map[string]string `json:"-"`
+	StatusCode  int               `json:"-"`
+	Err         error             `json:"-"`
 }
 
 func (e *AppError) Error() string {
@@ -27,6 +28,20 @@ func NewError(code, messageCode string, statusCode int, err error) *AppError {
 		StatusCode:  statusCode,
 		Err:         err,
 	}
+}
+
+// WithParam attaches a substitution value for the i18n template, e.g. the SKU
+// that ERP B rejected.
+func (e *AppError) WithParam(key, value string) *AppError {
+	if e.Params == nil {
+		e.Params = map[string]string{}
+	}
+	e.Params[key] = value
+	return e
+}
+
+func NewNotFoundError(messageCode string, err error) *AppError {
+	return NewError(CodeNotFound, messageCode, http.StatusNotFound, err)
 }
 
 func NewBadRequestError(messageCode string, err error) *AppError {

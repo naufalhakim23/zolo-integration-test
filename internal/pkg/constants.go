@@ -11,12 +11,14 @@ const (
 
 // Machine-readable error codes returned to the dashboard.
 const (
-	CodeInternalError = "INTERNAL_ERROR"
 	CodeBadRequest    = "BAD_REQUEST"
+	CodeNotFound      = "NOT_FOUND"
+	CodeInternalError = "INTERNAL_ERROR"
 )
 
 // Message codes
 const (
 	MsgInternalError  = "sync.internal_error"
+	MsgOrderNotFound  = "sync.order_not_found"
 	MsgInvalidRequest = "sync.invalid_request"
 )
