@@ -2,10 +2,13 @@ package pkg
 
 import "net/http"
 
+// AppError is the single error shape crossing layer boundaries. Code is stable and
+// machine-readable
 type AppError struct {
 	Code        string            `json:"code"`
-	MessageCode string            `json:"-"`
+	MessageCode string            `json:"-"` // i18n template key, e.g. "sync.order_not_found"
 	Params      map[string]string `json:"-"`
+	Details     []string          `json:"details,omitempty"` // optional, e.g. ["line 1: SKU 1234 rejected", "line 2: SKU 5678 rejected"]
 	StatusCode  int               `json:"-"`
 	Err         error             `json:"-"`
 }
@@ -52,6 +55,14 @@ func NewBadRequestError(messageCode string, err error) *AppError {
 	return NewError(CodeBadRequest, messageCode, http.StatusBadRequest, err)
 }
 
+func NewConflictError(messageCode string, err error) *AppError {
+	return NewError(CodeSyncInProgress, messageCode, http.StatusConflict, err)
+}
+
 func NewDatabaseError(err error) *AppError {
 	return NewError(CodeInternalError, MsgInternalError, http.StatusInternalServerError, err)
+}
+
+func NewUpstreamError(messageCode string, err error) *AppError {
+	return NewError(CodeERPUnavailable, messageCode, http.StatusBadGateway, err)
 }
