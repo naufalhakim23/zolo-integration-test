@@ -1,6 +1,7 @@
 package tenant
 
 import (
+	"zolo-test-integration/config"
 	"zolo-test-integration/internal/pkg"
 )
 
@@ -25,6 +26,15 @@ func (r *Registry) Get(tenantID string) (Mapper, *pkg.AppError) {
 			WithParam("tenant_id", tenantID)
 	}
 	return m, nil
+}
+
+// DefaultRegistry wires the tenants this service ships with. A third tenant is one
+// more Register call.
+func DefaultRegistry(cfg config.ERP) *Registry {
+	r := NewRegistry()
+	r.Register(NewAlpha(cfg.AlphaBaseURL))
+	r.Register(NewBeta(cfg.BetaBaseURL))
+	return r
 }
 
 func (r *Registry) TenantIDs() []string {
