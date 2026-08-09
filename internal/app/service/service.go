@@ -11,4 +11,5 @@ type ServiceOption struct {
 }
 
 type Service struct {
+	Sync ISyncService
 }
