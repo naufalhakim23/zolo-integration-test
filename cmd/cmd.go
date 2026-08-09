@@ -33,9 +33,10 @@ func Execute() {
 	defer db.Close()
 
 	options := pkg.OptionsApplication{
-		Config: cfg,
-		DB:     db,
-		Logger: logger,
+		Config:    cfg,
+		DB:        db,
+		Logger:    logger,
+		Localizer: pkg.NewLocalizer(cfg.Application.DefaultLanguage),
 	}
 
 	repo := repositoryConnector(repository.RepositoryOption{OptionsApplication: options})
