@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v5"
 
 	"zolo-test-integration/internal/app/payload"
+	"zolo-test-integration/internal/app/service"
 	"zolo-test-integration/internal/pkg"
 )
 
@@ -25,8 +26,14 @@ func (h *SyncHandler) SyncOrder(c *echo.Context) error {
 		return h.respondError(c, err)
 	}
 
-	return c.JSON(http.StatusOK, payload.BaseResponse{
-		Status:  http.StatusOK,
+	result.Localize(h.Localizer, language(c))
+
+	// A partial success answers 207, so the dashboard can tell "everything landed" from
+	// "some lines need attention" without inspecting the body.
+	status := service.HTTPStatus(result.Status)
+
+	return c.JSON(status, payload.BaseResponse{
+		Status:  status,
 		Message: result.Message,
 		Data:    result,
 	})
@@ -39,9 +46,20 @@ func (h *SyncHandler) BatchSyncOrders(c *echo.Context) error {
 		return h.respondError(c, pkg.NewBadRequestError(pkg.MsgInvalidRequest, err))
 	}
 
+	if errs := req.Validate(); len(errs) > 0 {
+		appErr := pkg.NewValidationError(pkg.MsgInvalidRequest, nil)
+		appErr.Details = errs
+		return h.respondError(c, appErr)
+	}
+
 	results, err := h.Service.Sync.BatchSyncOrders(c.Request().Context(), req.OrderIDs)
 	if err != nil {
 		return h.respondError(c, err)
+	}
+
+	lang := language(c)
+	for i := range results {
+		results[i].Localize(h.Localizer, lang)
 	}
 
 	return c.JSON(http.StatusOK, payload.BaseResponse{
@@ -62,6 +80,8 @@ func (h *SyncHandler) GetSyncStatus(c *echo.Context) error {
 	if err != nil {
 		return h.respondError(c, err)
 	}
+
+	result.Localize(h.Localizer, language(c))
 
 	return c.JSON(http.StatusOK, payload.BaseResponse{
 		Status:  http.StatusOK,

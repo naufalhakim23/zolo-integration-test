@@ -65,3 +65,21 @@ func SyncResultFromError(orderID string, err error) SyncResult {
 
 	return result
 }
+
+// Localize fills Message from the catalog. It runs at the HTTP edge, the only layer
+// that knows what language the caller reads.
+func (r *SyncResult) Localize(localizer *pkg.Localizer, lang string) {
+	if r.MessageCode == "" {
+		return
+	}
+
+	params := r.Params
+	if params == nil {
+		params = map[string]string{}
+	}
+	if _, ok := params["order_id"]; !ok && r.OrderID != "" {
+		params["order_id"] = r.OrderID
+	}
+
+	r.Message = localizer.Translate(lang, r.MessageCode, params)
+}

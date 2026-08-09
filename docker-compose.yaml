@@ -1,0 +1,33 @@
+services:
+  mock-erp:
+    build: .
+    container_name: zolo-mock-erp
+    command: ["./mock-erp"]
+    environment:
+      MOCK_ERP_PORT: "9090"
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  integration:
+    build: .
+    container_name: zolo-integration
+    environment:
+      APP_PORT: "8080"
+      DB_PATH: "/data/zolo.db"
+      ERP_ALPHA_BASE_URL: "http://mock-erp:9090"
+      ERP_BETA_BASE_URL: "http://mock-erp:9090"
+    ports:
+      - "8080:8080"
+    volumes:
+      - zolo_data:/data
+    depends_on:
+      mock-erp:
+        condition: service_healthy
+
+volumes:
+  zolo_data:
