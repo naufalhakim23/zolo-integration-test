@@ -3,14 +3,16 @@ package mockerp
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 const betaPath = "/api/v2/odoo-adapter/sales-order"
 
 type betaRequest struct {
-	OrderID    string `json:"order_ref"`
-	PartnerID  int64  `json:"partner_id"`
-	OrderLines []struct {
+	OrderID     string    `json:"order_ref"`
+	ConfirmedAt time.Time `json:"confirmed_at"`
+	PartnerID   int64     `json:"partner_id"`
+	OrderLines  []struct {
 		SKU           string `json:"product_code"`
 		Qty           int64  `json:"product_uom_qty"`
 		SubtotalCents int64  `json:"price_subtotal"`
@@ -45,6 +47,14 @@ func (s *Server) handleBeta(w http.ResponseWriter, r *http.Request) {
 
 	if req.PartnerID <= 0 {
 		writeJSON(w, http.StatusBadRequest, betaResponse{Error: "INVALID_PARTNER"})
+		return
+	}
+
+	// ERP B refuses a stale confirmation. The integration catches this in pre-validation,
+	// but the ERP enforces it too, so an order that crossed the window in flight lands here.
+	if !req.ConfirmedAt.IsZero() && time.Since(req.ConfirmedAt) > BetaMaxOrderAge {
+		s.logger.Info("erp b rejected expired order", "order_ref", req.OrderID, "confirmed_at", req.ConfirmedAt)
+		writeJSON(w, http.StatusBadRequest, betaResponse{Error: "ORDER_EXPIRED"})
 		return
 	}
 

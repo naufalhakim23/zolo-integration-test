@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 // OutOfStockSKUMarker drives ERP B's partial failure off the SKU, so an order containing
@@ -14,6 +15,9 @@ const OutOfStockSKUMarker = "OUTOFSTOCK"
 
 // AlphaMaxLineItems mirrors ERP A's per-request rate limit.
 const AlphaMaxLineItems = 2
+
+// BetaMaxOrderAge mirrors ERP B's confirmation freshness window.
+const BetaMaxOrderAge = 24 * time.Hour
 
 type Server struct {
 	logger *slog.Logger

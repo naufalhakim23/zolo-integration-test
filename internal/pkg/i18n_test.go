@@ -100,6 +100,7 @@ func TestCatalogCoverage(t *testing.T) {
 	codes := []string{
 		pkg.MsgSyncSuccess, pkg.MsgSyncPartial, pkg.MsgSyncFailed, pkg.MsgSyncInProgress,
 		pkg.MsgOrderNotFound, pkg.MsgOrderNotConfirmed, pkg.MsgOrderExpired,
+		pkg.MsgOrderExists, pkg.MsgOrderCreated,
 		pkg.MsgUnknownTenant, pkg.MsgInvalidPartnerRef, pkg.MsgNoLineItems,
 		pkg.MsgLineRejected, pkg.MsgERPUnavailable, pkg.MsgERPRejected,
 		pkg.MsgInternalError, pkg.MsgInvalidRequest,

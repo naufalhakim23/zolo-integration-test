@@ -65,6 +65,18 @@ What a new tenant inherits for free: idempotency, the claim/replay concurrency r
 - Prices are `INTEGER` at rest too. Nothing can reintroduce drift by round-tripping through storage.
 - `Amount`'s JSON codec is symmetric: it marshals and unmarshals minor units. Decimal ingestion lives in a separately named `money.Decimal`, so the scaling is visible in the type rather than hidden in a codec. An asymmetric codec here would multiply a value by 100 every time it round-tripped through an audit snapshot, silently.
 
+## Where decimals enter the system
+
+The brief's order payload carries major-unit decimals (`"unit_price": 18.5`, `"discount_percent": 10`); everything at rest is integer minor units. That conversion happens in exactly one place: `POST /api/v1/orders`, the write the dashboard makes when the order taker confirms.
+
+Giving the exercise a real ingestion endpoint rather than seeding cents straight into SQL is deliberate. Seeding pre-scaled values would have made the rounding tests true by construction: the interesting failure is the parse, not the arithmetic afterwards. With the endpoint, the brief's payload can be posted verbatim and the response echoes `subtotal_cents: 22650` next to `subtotal: "226.50"`, so the scaling is visible rather than asserted.
+
+The conversion is named in the type system. `money.Decimal` parses major units, `money.Amount` is minor units, and `ToModel` is the only crossing. `discount_percent` reuses the same text parse: the scale is 100, so 10 percent lands on 1000 basis points exactly, and a fractional `12.5` on 1250.
+
+`POST` is a create, not an upsert. Re-posting an `order_id` returns `409 ORDER_EXISTS`, because an order already synced was built from the stored values, and quietly replacing them would make the audit snapshot describe a payload that no longer exists.
+
+**Tradeoff**: the endpoint is a convenience for exercising the service, not a modelled dashboard write path. A real one would authenticate the order taker and probably accept an update before the first sync. Both are outside the timebox, and neither changes the mapping or dispatch story.
+
 ## Concurrency and double-clicks
 
 The idempotency key alone does not solve this. `SHA256(order_id + tenant_id)` makes a repeat *recognisable*, but two requests already in flight have not written anything yet, so there is nothing to recognise. The key is necessary and not sufficient.
@@ -109,6 +121,8 @@ One property of the specified key is worth flagging to the tenant: concatenating
 ## Other decisions worth naming
 
 **Pre-flight rejections do not consume a claim.** An expired or unmappable order returns 422 and writes no `sync_attempts` row. If it did, a re-confirmed order could not be synced later under the same deterministic key. The cost is that pre-flight rejections are not in the audit table; they are logged instead. If audit coverage of rejections matters more, that flips.
+
+**Expiry is enforced on both sides of the wire.** `PreValidate` rejects a stale order before any network call, which is what the brief asks for. The payload still carries `confirmed_at` and the mock still answers `400 ORDER_EXPIRED`, because an order confirmed close to the boundary can cross it while the request is in flight, and a mock that cannot produce the rejection leaves the handling for it untested.
 
 **Retry only on 429 and 5xx.** A 4xx is the ERP saying the payload is wrong; repeating it just makes the order taker wait longer for the same answer. Backoff is exponential with full jitter and honours `Retry-After`; jitter keeps a batch from re-colliding on the rate limit in lockstep.
 

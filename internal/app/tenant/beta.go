@@ -35,10 +35,11 @@ func NewBeta(baseURL string) *Beta {
 func (b *Beta) TenantID() string { return pkg.TenantBeta }
 
 type BetaPayload struct {
-	OrderID    string          `json:"order_ref"`
-	PartnerID  int64           `json:"partner_id"`
-	Currency   string          `json:"currency"`
-	OrderLines []BetaOrderLine `json:"order_lines"`
+	OrderID     string          `json:"order_ref"`
+	ConfirmedAt time.Time       `json:"confirmed_at"`
+	PartnerID   int64           `json:"partner_id"`
+	Currency    string          `json:"currency"`
+	OrderLines  []BetaOrderLine `json:"order_lines"`
 
 	AmountUntaxed money.Amount `json:"amount_untaxed"`
 	AmountTax     money.Amount `json:"amount_tax"` // charged once on the header, not per line
@@ -132,6 +133,7 @@ func (b *Beta) Build(order model.Order) ([]erp.Request, *pkg.AppError) {
 		},
 		Body: BetaPayload{
 			OrderID:       order.OrderID,
+			ConfirmedAt:   order.ConfirmedAt,
 			PartnerID:     partnerID,
 			Currency:      order.Currency,
 			OrderLines:    lines,

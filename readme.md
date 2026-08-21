@@ -30,6 +30,7 @@ Every test runs against a real SQLite file rather than a mock database. The HTTP
 
 | Method | Endpoint | Purpose |
 |---|---|---|
+| `POST` | `/api/v1/orders` | Store a confirmed order (the dashboard's "Confirm Order" write) |
 | `POST` | `/api/v1/orders/:id/sync` | Push one confirmed order |
 | `POST` | `/api/v1/orders/batch-sync` | Push several; one result per order |
 | `GET` | `/api/v1/orders/:id/sync-status` | Audit read of the latest attempt |
@@ -47,6 +48,43 @@ Response codes on the sync endpoint:
 | `502` | The ERP rejected the order or could not be reached |
 
 `Accept-Language: ms` returns Malay messages; the default is English.
+
+### Confirming an order
+
+`POST /api/v1/orders` takes the ZOLO confirmed-order payload exactly as the brief writes it, decimals included. It is the only place major units enter the system: prices are parsed as text through `big.Rat` and stored as integer cents, and `discount_percent` becomes integer basis points.
+
+```bash
+curl -X POST localhost:8080/api/v1/orders -H 'Content-Type: application/json' -d '{
+  "order_id": "ord_998123",
+  "tenant_id": "tenant_alpha",
+  "confirmed_at": "2026-07-22T08:00:00Z",
+  "confirmed_by_user_id": "usr_4410",
+  "currency": "MYR",
+  "customer": { "phone": "+60123456789", "external_ref": "CUST-882" },
+  "items": [
+    { "sku": "SKU-MILO-1KG",    "qty": 10, "unit_price": 18.5, "discount_percent": 10 },
+    { "sku": "SKU-NESTUM-500G", "qty": 5,  "unit_price": 12.0, "discount_percent": 0 }
+  ]
+}'
+```
+
+```json
+{
+  "status": 201,
+  "message": "Order ord_998123 was confirmed and is ready to sync.",
+  "data": {
+    "order_id": "ord_998123",
+    "tenant_id": "tenant_alpha",
+    "status": "CONFIRMED",
+    "line_count": 2,
+    "subtotal_cents": 22650,
+    "subtotal": "226.50",
+    "currency": "MYR"
+  }
+}
+```
+
+The subtotal comes back in both forms so the caller can see how its decimals were scaled: `18.50 x 0.9 x 10 = 16650`, `12.00 x 5 = 6000`, no drift. Re-posting the same `order_id` is `409 ORDER_EXISTS`, not an update.
 
 ### Example
 

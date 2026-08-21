@@ -43,6 +43,12 @@ func (e *AppError) WithParam(key, value string) *AppError {
 	return e
 }
 
+// NewOrderExistsError reports a re-confirmed order_id. It is a conflict rather than an
+// update, because a stored order is what a completed sync attempt was built from.
+func NewOrderExistsError() *AppError {
+	return NewError(CodeOrderExists, MsgOrderExists, http.StatusConflict, nil)
+}
+
 func NewValidationError(messageCode string, err error) *AppError {
 	return NewError(CodeValidationError, messageCode, http.StatusUnprocessableEntity, err)
 }
